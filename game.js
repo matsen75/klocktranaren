@@ -957,7 +957,16 @@ function showSettings() {
   $('#sspeak').onchange = e => { S.speakAuto = e.target.checked; save(); };
   $('#shelp').onchange = e => { S.help = e.target.checked; save(); };
   $('#sreset').onclick = () => {
-    if (confirm('Vill du verkligen radera namn, stjärnor, mynt och medaljer?')) { S = defaultState(); save(); go(showWelcome); }
+    SFX.click();
+    const ov = document.createElement('div');
+    ov.className = 'overlay';
+    ov.innerHTML = `<div class="card"><div class="introemoji">🤔</div>
+      <h2>Vill du verkligen börja om från början?</h2>
+      <p>Namn, figur, stjärnor, mynt och medaljer försvinner.</p>
+      <div class="btnrow"><button class="btn alt" data-a="no">Nej</button><button class="btn red" data-a="yes">Ja, börja om</button></div></div>`;
+    document.body.appendChild(ov);
+    $('[data-a=no]', ov).onclick = () => { SFX.click(); ov.remove(); };
+    $('[data-a=yes]', ov).onclick = () => { S = defaultState(); save(); go(showWelcome); };
   };
 }
 

@@ -1,6 +1,6 @@
 // Service worker: gör att spelet går att installera och spela utan nät.
 // Höj VERSION när filerna ändras så att alla får den nya versionen.
-const VERSION = 'v4';
+const VERSION = 'v5';
 const CACHE = `klocktranaren-${VERSION}`;
 const FILES = [
   './', './index.html', './style.css', './game.js', './manifest.webmanifest',
