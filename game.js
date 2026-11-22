@@ -951,13 +951,11 @@ function showSettings() {
     <label>Ljud <input type="checkbox" id="ssound" ${S.sound ? 'checked' : ''}></label>
     <label>Läs upp frågorna automatiskt <input type="checkbox" id="sspeak" ${S.speakAuto ? 'checked' : ''}></label>
     <label>Visa minutsiffror runt klockan <input type="checkbox" id="shelp" ${S.help ? 'checked' : ''}></label>
-    <label>Lås upp alla världar (för föräldrar) <input type="checkbox" id="sunlock" ${S.unlockAll ? 'checked' : ''}></label>
     <div class="btnrow"><button class="btn red" id="sreset">🗑️ Börja om från början</button></div></div>`);
   $('#sname').oninput = e => { const v = e.target.value.trim(); if (v) { S.name = v; save(); } };
   $('#ssound').onchange = e => { S.sound = e.target.checked; save(); SFX.click(); };
   $('#sspeak').onchange = e => { S.speakAuto = e.target.checked; save(); };
   $('#shelp').onchange = e => { S.help = e.target.checked; save(); };
-  $('#sunlock').onchange = e => { S.unlockAll = e.target.checked; save(); };
   $('#sreset').onclick = () => {
     if (confirm('Vill du verkligen radera alla stjärnor, mynt och medaljer?')) { const n = S.name; S = defaultState(); S.name = n; save(); go(showHome); }
   };
@@ -997,6 +995,18 @@ function showWelcome() {
   $('.wgo').onclick = start;
   inp.onkeydown = e => { if (e.key === 'Enter') start(); };
 }
+
+/* ---------- Föräldrakod: #lasupp i adressen låser upp allt (#laslas låser igen) ---------- */
+function checkHash() {
+  const h = decodeURIComponent(location.hash).toLowerCase();
+  if (h !== '#lasupp' && h !== '#laslas') return;
+  S.unlockAll = h === '#lasupp'; save();
+  history.replaceState(null, '', location.pathname + location.search);
+  toast(S.unlockAll ? '🔓 Alla världar är upplåsta!' : '🔒 Världarna är låsta igen');
+  if (S.name) go(showHome);
+}
+window.addEventListener('hashchange', checkHash);
+checkHash();
 
 /* ---------- Start ---------- */
 try { speechSynthesis.getVoices(); } catch (e) { /* ok */ }
