@@ -12,6 +12,8 @@ Ett webbspel för att lära sig klockan – både analog och digital. Gjort för
 - **Belöningar:** stjärnor, mynt, nivåer och titlar, 20 medaljer, butik med figurer och klockutseenden
 - **Snabbrunda** på 60 sekunder med rekord
 - 🔊 Uppläsning av frågor (för den som inte läser så snabbt än) och hjälpsiffror för minuter
+- Man skriver sitt namn och väljer figur första gången man spelar
+- **Installera på telefonen:** Android/Chrome visar knappen ”📲 Installera på telefonen” på startsidan. På iPhone/iPad: öppna i Safari → Dela ⬆️ → ”Lägg till på hemskärmen”. Spelet fungerar sedan även utan nät.
 - Framsteg sparas i webbläsaren. Föräldrar kan låsa upp alla världar under Inställningar.
 
 ## Teknik

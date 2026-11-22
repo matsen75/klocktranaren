@@ -23,8 +23,8 @@ document.addEventListener('keydown', e => { if (keyHandler) keyHandler(e); });
 /* ---------- Sparning ---------- */
 const SAVE_KEY = 'klocktranaren-v1';
 const defaultState = () => ({
-  name: 'Valter', coins: 0, coinsEarned: 0, stars: {}, bosses: {}, totalCorrect: 0, bestStreak: 0,
-  badges: [], avatars: ['🧒', '👦'], avatar: '🧒', skins: ['klassisk'], skin: 'klassisk',
+  name: '', coins: 0, coinsEarned: 0, stars: {}, bosses: {}, totalCorrect: 0, bestStreak: 0,
+  badges: [], avatars: ['🧒', '👦', '👧'], avatar: '🧒', skins: ['klassisk'], skin: 'klassisk',
   sound: true, speakAuto: false, help: true, quickBest: 0, bought: false, lvl: 1, unlockAll: false,
 });
 let S = load();
@@ -119,7 +119,7 @@ const SKINS = {
   guld: { n: 'Guld', p: 250, face: '#fff8dc', rim: '#d4a017', num: '#7f5539', hour: '#9d0208', min: '#3d405b' },
 };
 const AVATARS = [
-  ['🧒', 0], ['👦', 0], ['🦊', 20], ['🐸', 25], ['🐼', 35], ['🐯', 45], ['🦖', 60], ['🦄', 75],
+  ['🧒', 0], ['👦', 0], ['👧', 0], ['🦊', 20], ['🐸', 25], ['🐼', 35], ['🐯', 45], ['🦖', 60], ['🦄', 75],
   ['🤖', 90], ['🐲', 110], ['🦸', 130], ['🥷', 160], ['🧑‍🚀', 200], ['🦁', 240],
 ];
 
@@ -569,6 +569,7 @@ function showHome() {
       <button class="btn alt" data-go="shop">🛍️ Butik</button>
       <button class="btn alt" data-go="badges">🏅 Medaljer</button>
       <button class="btn alt" data-go="settings">⚙️ Inställningar</button>
+      <div class="installslot" style="grid-column:1/-1"></div>
     </div>
     <div class="card nowclock"><div class="nowc"></div><div class="nowtext"></div></div>`;
   const nav = { map: showMap, quick: startQuick, shop: showShop, badges: showBadges, settings: showSettings };
@@ -579,6 +580,40 @@ function showHome() {
     $('.nowtext').innerHTML = `Just nu är klockan<b>${cap(phrase(h, m))}</b>${fmt24(h, m)} ${dayPart(h)}`;
   };
   tick(); every(tick, 15000);
+  renderInstall();
+}
+
+/* ---------- Installera på telefonen ---------- */
+let installPrompt = null;
+const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+function renderInstall() {
+  const slot = $('.installslot');
+  if (!slot) return;
+  if (isStandalone() || (!installPrompt && !isIOS())) { slot.innerHTML = ''; return; }
+  slot.innerHTML = '<button class="btn purple" style="width:100%">📲 Installera på telefonen</button>';
+  $('button', slot).onclick = async () => {
+    SFX.click();
+    if (installPrompt) {
+      installPrompt.prompt();
+      try { await installPrompt.userChoice; } catch (e) { /* ok */ }
+      installPrompt = null; renderInstall();
+      return;
+    }
+    const ov = document.createElement('div');
+    ov.className = 'overlay';
+    ov.innerHTML = `<div class="card"><div class="introemoji">📲</div><h2>Lägg till på hemskärmen</h2>
+      <p style="text-align:left">1. Öppna sidan i <b>Safari</b>.<br>2. Tryck på <b>Dela</b>-knappen <span style="font-size:1.4rem">⬆️</span> (rutan med pilen).<br>3. Välj <b>”Lägg till på hemskärmen”</b>.<br>4. Tryck <b>Lägg till</b>.</p>
+      <p>Sen finns Klocktränaren som en app på telefonen! ⏰</p>
+      <button class="btn green">Okej!</button></div>`;
+    document.body.appendChild(ov);
+    $('button', ov).onclick = () => ov.remove();
+  };
+}
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; renderInstall(); });
+window.addEventListener('appinstalled', () => { installPrompt = null; renderInstall(); toast('📲 Klocktränaren är installerad!'); });
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => { /* ok */ }));
 }
 
 /* ---------- Karta ---------- */
@@ -918,7 +953,7 @@ function showSettings() {
     <label>Visa minutsiffror runt klockan <input type="checkbox" id="shelp" ${S.help ? 'checked' : ''}></label>
     <label>Lås upp alla världar (för föräldrar) <input type="checkbox" id="sunlock" ${S.unlockAll ? 'checked' : ''}></label>
     <div class="btnrow"><button class="btn red" id="sreset">🗑️ Börja om från början</button></div></div>`);
-  $('#sname').oninput = e => { S.name = e.target.value.trim() || 'Valter'; save(); };
+  $('#sname').oninput = e => { const v = e.target.value.trim(); if (v) { S.name = v; save(); } };
   $('#ssound').onchange = e => { S.sound = e.target.checked; save(); SFX.click(); };
   $('#sspeak').onchange = e => { S.speakAuto = e.target.checked; save(); };
   $('#shelp').onchange = e => { S.help = e.target.checked; save(); };
@@ -928,6 +963,41 @@ function showSettings() {
   };
 }
 
+/* ---------- Välkommen: skriv ditt namn ---------- */
+function showWelcome() {
+  let chosen = S.avatar;
+  const free = AVATARS.filter(([, p]) => p === 0).map(([e]) => e);
+  app.innerHTML = `
+    <h1 class="logo">⏰ Klocktränaren</h1>
+    <div class="card welcome">
+      <div class="bigavatar" style="text-align:center">⏰</div>
+      <h2 style="text-align:center;margin:8px 0">Välkommen, klockhjälte!</h2>
+      <p style="text-align:center;font-size:1.15rem;margin:0 0 14px">Vad heter du?</p>
+      <input type="text" id="wname" maxlength="16" autocomplete="off" placeholder="Skriv ditt namn" aria-label="Ditt namn">
+      <p style="text-align:center;font-size:1.1rem;margin:16px 0 8px">Välj din figur:</p>
+      <div class="wavatars">${free.map(e => `<button class="item ${e === chosen ? 'equipped' : ''}" data-av="${e}"><span class="ie">${e}</span></button>`).join('')}</div>
+      <p class="whint" style="text-align:center;color:#e63946;min-height:1.4em;margin:8px 0"></p>
+      <button class="btn green wgo" style="width:100%;font-size:1.4rem">▶ Starta äventyret!</button>
+    </div>`;
+  const inp = $('#wname');
+  inp.value = S.name;
+  later(() => inp.focus(), 100);
+  $$('[data-av]').forEach(b => b.onclick = () => {
+    SFX.click(); chosen = b.dataset.av;
+    $$('[data-av]').forEach(x => x.classList.toggle('equipped', x === b));
+  });
+  const start = () => {
+    const v = inp.value.trim();
+    if (!v) { $('.whint').textContent = 'Skriv ditt namn först! ✏️'; inp.focus(); SFX.bad(); return; }
+    S.name = v; S.avatar = chosen; save();
+    SFX.win(); confetti(120);
+    speak(`Hej ${v}! Nu kör vi!`);
+    go(showHome);
+  };
+  $('.wgo').onclick = start;
+  inp.onkeydown = e => { if (e.key === 'Enter') start(); };
+}
+
 /* ---------- Start ---------- */
 try { speechSynthesis.getVoices(); } catch (e) { /* ok */ }
-go(showHome);
+go(S.name ? showHome : showWelcome);
