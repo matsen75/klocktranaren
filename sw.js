@@ -1,6 +1,7 @@
 // Service worker: gör att spelet går att installera och spela utan nät.
-// Höj VERSION när filerna ändras så att alla får den nya versionen.
-const VERSION = 'v5';
+// Hämtar alltid senaste versionen när det finns nät, och använder sparad kopia annars.
+// Höj VERSION när filerna ändras.
+const VERSION = 'v6';
 const CACHE = `klocktranaren-${VERSION}`;
 const FILES = [
   './', './index.html', './style.css', './game.js', './manifest.webmanifest',
@@ -8,7 +9,12 @@ const FILES = [
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
+  // cache: 'reload' går förbi webbläsarens HTTP-cache så att vi sparar de nyaste filerna
+  e.waitUntil(
+    caches.open(CACHE)
+      .then(c => c.addAll(FILES.map(f => new Request(f, { cache: 'reload' }))))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', e => {
@@ -19,7 +25,6 @@ self.addEventListener('activate', e => {
   );
 });
 
-// Visa direkt från cachen och hämta en färsk kopia i bakgrunden.
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
@@ -27,18 +32,31 @@ self.addEventListener('fetch', e => {
   const sameOrigin = url.origin === self.location.origin;
   const isFont = url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com';
   if (!sameOrigin && !isFont) return;
-  e.respondWith(
-    caches.open(CACHE).then(async cache => {
-      const cached = await cache.match(req, { ignoreSearch: sameOrigin });
-      const fresh = fetch(req).then(res => {
-        if (res && (res.ok || res.type === 'opaque')) cache.put(req, res.clone());
-        return res;
-      }).catch(() => null);
-      if (cached) { e.waitUntil(fresh); return cached; }
-      const res = await fresh;
-      if (res) return res;
-      if (req.mode === 'navigate') return cache.match('./index.html');
+
+  if (isFont) {
+    // Typsnitt ändras aldrig: sparad kopia först.
+    e.respondWith(caches.open(CACHE).then(async cache => {
+      const hit = await cache.match(req);
+      if (hit) return hit;
+      const res = await fetch(req);
+      if (res && (res.ok || res.type === 'opaque')) cache.put(req, res.clone());
+      return res;
+    }));
+    return;
+  }
+
+  // Spelets egna filer: nätet först (alltid senaste versionen), sparad kopia om nätet saknas.
+  e.respondWith((async () => {
+    const cache = await caches.open(CACHE);
+    try {
+      const res = await fetch(req, { cache: 'no-cache' });
+      if (res && res.ok) cache.put(req, res.clone());
+      return res;
+    } catch (err) {
+      const hit = await cache.match(req, { ignoreSearch: true });
+      if (hit) return hit;
+      if (req.mode === 'navigate') return (await cache.match('./index.html')) || (await cache.match('./'));
       return new Response('', { status: 504 });
-    })
-  );
+    }
+  })());
 });

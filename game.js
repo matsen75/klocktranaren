@@ -613,7 +613,7 @@ function renderInstall() {
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; renderInstall(); });
 window.addEventListener('appinstalled', () => { installPrompt = null; renderInstall(); toast('📲 Klocktränaren är installerad!'); });
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => { /* ok */ }));
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => { /* ok */ }));
 }
 
 /* ---------- Karta ---------- */
