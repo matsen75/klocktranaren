@@ -205,7 +205,9 @@ WORLDS.forEach(w => { w.allowed = m => Array.isArray(w.mins) ? w.mins.includes(m
 const levelKey = (wi, li) => `${WORLDS[wi].id}-${li}`;
 const worldOpen = wi => S.unlockAll || wi === 0 || !!S.bosses[WORLDS[wi - 1].id];
 const levelOpen = (wi, li) => worldOpen(wi) && (S.unlockAll || li === 0 || (S.stars[levelKey(wi, li - 1)] || 0) >= 1);
-const bossOpen = wi => worldOpen(wi) && (S.unlockAll || WORLDS[wi].levels.every((_, li) => (S.stars[levelKey(wi, li)] || 0) >= 1));
+// Bossen öppnas först när alla banor i världen har 3 stjärnor
+const worldStars = wi => WORLDS[wi].levels.reduce((a, _, li) => a + (S.stars[levelKey(wi, li)] || 0), 0);
+const bossOpen = wi => worldOpen(wi) && (S.unlockAll || WORLDS[wi].levels.every((_, li) => (S.stars[levelKey(wi, li)] || 0) >= 3));
 const totalStars = () => Object.values(S.stars).reduce((a, b) => a + b, 0);
 const helpOn = w => S.help && w.step <= 15;
 
@@ -648,7 +650,7 @@ function showMap() {
       <div class="whead"><span class="wicon">${open ? w.icon : '🔒'}</span><div><h2>Värld ${wi + 1}: ${w.name}</h2><p>${open ? w.desc : 'Besegra bossen i förra världen för att öppna.'}</p></div></div>
       <div class="levels">${lv}
         <button class="lvl boss ${bo ? '' : 'locked'} ${beaten ? 'beaten' : ''}" data-b="${wi}" ${bo ? '' : 'disabled'}>
-          <span class="li">${bo ? w.boss.emoji : '🔒'}</span><span class="ln">${beaten ? '🏆 Besegrad!' : 'BOSS'}</span><span class="ls">${kind}</span></button>
+          <span class="li">${bo ? w.boss.emoji : '🔒'}</span><span class="ln">${beaten ? '🏆 Besegrad!' : 'BOSS'}</span><span class="ls">${bo ? kind : `⭐ ${worldStars(wi)}/${w.levels.length * 3}`}</span></button>
       </div></section>`;
   }).join('');
   mount(topbar('🗺️ Äventyret'), worlds);
@@ -705,6 +707,7 @@ function finishLevel() {
     <div class="stars">${[0, 1, 2].map(i => `<span>${i < stars ? '⭐' : '☆'}</span>`).join('')}</div>
     <p>${g.correct} av ${g.total} rätt · +${g.coins} 🪙</p>
     ${nowBoss ? `<p style="font-size:1.3rem;font-weight:700;color:#e63946">⚔️ ${g.w.boss.emoji} ${g.w.boss.name} väntar på dig!</p>` : ''}
+    ${!bossOpen(g.wi) && !S.bosses[g.w.id] ? `<p style="color:#457b9d">Samla 3 ⭐ på alla banor för att möta ${g.w.boss.emoji} ${g.w.boss.name}! (${worldStars(g.wi)}/${g.w.levels.length * 3})</p>` : ''}
     <div class="btnrow">
       <button class="btn alt" data-a="again">🔁 Igen</button>
       <button class="btn alt" data-a="map">🗺️ Kartan</button>
