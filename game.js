@@ -957,7 +957,7 @@ function showSettings() {
   $('#sspeak').onchange = e => { S.speakAuto = e.target.checked; save(); };
   $('#shelp').onchange = e => { S.help = e.target.checked; save(); };
   $('#sreset').onclick = () => {
-    if (confirm('Vill du verkligen radera alla stjärnor, mynt och medaljer?')) { const n = S.name; S = defaultState(); S.name = n; save(); go(showHome); }
+    if (confirm('Vill du verkligen radera namn, stjärnor, mynt och medaljer?')) { S = defaultState(); save(); go(showWelcome); }
   };
 }
 
