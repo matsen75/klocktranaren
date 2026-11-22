@@ -141,7 +141,16 @@ h1, h2, h3 { margin: 0; }
 .sethint { color: var(--muted); font-size: .9rem; text-align: center; }
 
 .keypad { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-.kpdisp { font-size: 2.6rem; min-width: 200px; text-align: center; }
+.kpdisp { font-size: 2.6rem; min-width: 200px; text-align: center; display: flex; align-items: center; justify-content: center; gap: 4px; }
+.kpf {
+  font: inherit; color: inherit; letter-spacing: 3px; background: transparent; border: none;
+  border-bottom: 4px solid transparent; border-radius: 6px; padding: 0 6px; cursor: pointer; min-width: 2.4ch;
+}
+.kpf.active { border-bottom-color: #7cfc8a; background: rgba(124,252,138,.15); animation: blink 1.2s ease-in-out infinite; }
+.kplabels { display: flex; gap: 48px; color: var(--muted); font-size: .9rem; margin-top: -6px; }
+.keys .colon { background: #ffd166; box-shadow: 0 4px 0 #e0a800; font-size: 2rem; }
+.kpok { width: 244px; max-width: 100%; }
+@keyframes blink { 0%,100% { background: rgba(124,252,138,.15); } 50% { background: rgba(124,252,138,.35); } }
 .keys { display: grid; grid-template-columns: repeat(3, 76px); gap: 8px; }
 .keys button { height: 62px; font-size: 1.6rem; font-weight: 700; border: none; border-radius: 16px; background: #e9ecef; cursor: pointer; box-shadow: 0 4px 0 #ced4da; }
 .keys button:active { transform: translateY(2px); }

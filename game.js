@@ -433,38 +433,55 @@ function setUI(ans, q, w, finish) {
 }
 
 function keypadUI(ans, q, finish) {
-  let s = '';
-  ans.innerHTML = `<div class="keypad"><div class="lcd kpdisp">_:__</div>
+  // Två fält: timmar och minuter. Man skriver i det fält som lyser.
+  let hh = '', mm = '', field = 'h';
+  const maxFirst = q.hint24 ? 2 : 1; // högsta första siffran som kan bli tvåsiffrig timme
+  ans.innerHTML = `<div class="keypad">
+    <div class="lcd kpdisp"><button class="kpf" data-f="h" aria-label="Timmar"></button><span>:</span><button class="kpf" data-f="m" aria-label="Minuter"></button></div>
+    <div class="kplabels"><span>timmar</span><span>minuter</span></div>
     <div class="keys">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<button data-k="${n}">${n}</button>`).join('')}
-    <button data-k="del" aria-label="Sudda">⌫</button><button data-k="0">0</button><button data-k="ok" class="ok">OK</button></div>
-    <div class="kphint">${q.hint24 ? 'Tryck t.ex. 1 5 3 0 för 15:30' : 'Tryck t.ex. 3 3 0 för 3:30'}</div></div>`;
+    <button data-k="del" aria-label="Sudda">⌫</button><button data-k="0">0</button><button data-k="colon" class="colon" aria-label="Till minuterna">:</button></div>
+    <button class="btn green kpok" data-k="ok">OK ✔</button>
+    <div class="kphint">${q.hint24 ? 'Skriv timmen, tryck : och skriv minuterna. T.ex. 15 : 30' : 'Skriv timmen, tryck : och skriv minuterna. T.ex. 10 : 30'}</div></div>`;
   const disp = $('.kpdisp', ans), hint = $('.kphint', ans);
+  const fh = $('[data-f=h]', ans), fm = $('[data-f=m]', ans);
   const show = () => {
-    let txt;
-    if (s.length === 0) txt = '_:__';
-    else if (s.length === 1) txt = `${s}:__`;
-    else if (s.length === 2) txt = `${s[0]}:${s[1]}_`;
-    else if (s.length === 3) txt = `${s[0]}:${s.slice(1)}`;
-    else txt = `${s.slice(0, 2)}:${s.slice(2)}`;
-    disp.textContent = txt;
+    fh.textContent = hh || '__';
+    fm.textContent = mm.padEnd(2, '_');
+    fh.classList.toggle('active', field === 'h');
+    fm.classList.toggle('active', field === 'm');
   };
+  const nudge = msg => { hint.textContent = msg; disp.classList.remove('hurt'); void disp.offsetWidth; disp.classList.add('hurt'); SFX.bad(); };
   const press = k => {
-    if (k === 'del') s = s.slice(0, -1);
-    else if (k === 'ok') {
-      if (s.length < 3) { disp.classList.remove('hurt'); void disp.offsetWidth; disp.classList.add('hurt'); hint.textContent = 'Skriv både timmar och minuter!'; return; }
-      const h = s.length === 3 ? +s[0] : +s.slice(0, 2), m = +s.slice(-2);
-      if (m > 59) { hint.textContent = 'Minuterna går bara upp till 59. Försök igen!'; s = ''; show(); return; }
-      if (h > 24) { hint.textContent = 'Timmarna går bara upp till 24. Försök igen!'; s = ''; show(); return; }
+    if (k === 'ok') {
+      if (!hh || !mm) return nudge('Skriv både timmar och minuter!');
+      const h = +hh, m = +mm;
+      if (m > 59) { mm = ''; field = 'm'; show(); return nudge('Minuterna går bara upp till 59. Försök igen!'); }
+      if (h > 24) { hh = ''; field = 'h'; show(); return nudge('Timmarna går bara upp till 24. Försök igen!'); }
       finish(q.accept(h, m)); return;
-    } else if (s.length < 4) s += k;
+    }
+    if (k === 'colon') { if (hh) field = 'm'; }
+    else if (k === 'del') {
+      if (field === 'm' && mm) mm = mm.slice(0, -1);
+      else if (field === 'm') { field = 'h'; hh = hh.slice(0, -1); }
+      else hh = hh.slice(0, -1);
+    } else if (field === 'h') {
+      if (hh.length < 2) hh += k;
+      // hoppa till minuterna när timmen inte kan bli längre
+      if (hh.length === 2 || +hh[0] > maxFirst) field = 'm';
+    } else if (mm.length < 2) mm += k;
     SFX.click(); show();
   };
-  $$('.keys button', ans).forEach(b => b.onclick = () => press(b.dataset.k));
+  $$('.keys button, .kpok', ans).forEach(b => b.onclick = () => press(b.dataset.k));
+  fh.onclick = () => { field = 'h'; hh = ''; SFX.click(); show(); };
+  fm.onclick = () => { if (hh) { field = 'm'; mm = ''; SFX.click(); show(); } };
   keyHandler = e => {
     if (/^[0-9]$/.test(e.key)) press(e.key);
+    else if (e.key === ':' || e.key === '.' || e.key === 'Tab' || e.key === ' ') { e.preventDefault(); press('colon'); }
     else if (e.key === 'Backspace') press('del');
     else if (e.key === 'Enter') press('ok');
   };
+  show();
 }
 
 /* ---------- Belöningar ---------- */
